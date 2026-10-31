@@ -22,7 +22,9 @@ public class ModuleAirJump : Module
                 GameManager.Minigame.players.FirstOrDefault(p => p.IsMe()) is { } me)
             {
                 var characterMover = me.GetComponent<CharacterMover>();
-                if (characterMover != null) characterMover.maxJumps = (int)(float)MaxJumps.GetValue();
+                if (characterMover != null)
+                    Overrides.Set(characterMover, "maxJumps", () => characterMover.maxJumps,
+                        value => characterMover.maxJumps = value, (int)(float)MaxJumps.GetValue());
             }
     }
 }

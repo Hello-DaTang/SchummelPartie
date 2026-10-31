@@ -12,7 +12,9 @@ public abstract class Module
     public readonly string Description;
     public readonly string Name;
     protected readonly GUIStyle Style;
+    protected internal readonly RuntimeOverrides Overrides = new();
     public SettingSwitch EnabledSetting;
+    private bool _running;
 
     protected Module(string name, string description)
     {
@@ -22,27 +24,43 @@ public abstract class Module
         Style.fontSize = 30;
         Style.normal.textColor = Color.white;
         Style.fontStyle = FontStyle.Bold;
-        EnabledSetting = new SettingSwitch(Name, "Enabled", true, isEnabled =>
-        {
-            if (isEnabled)
-                OnEnable();
-            else
-                OnDisable();
-        });
+        EnabledSetting = new SettingSwitch(Name, "Enabled", true, _ => RefreshState());
         MelonLogger.Msg($"[Module Manager] {Name} loaded.");
     }
 
-    public bool Enabled => (bool)EnabledSetting.GetValue();
+    public bool ConfiguredEnabled => (bool)EnabledSetting.GetValue();
+
+    protected virtual bool AvailableWhileSuspended => false;
+
+    public bool Enabled => ConfiguredEnabled && (AvailableWhileSuspended || !ModuleManager.IsSuspended);
 
     public void Toggle()
     {
-        EnabledSetting.SetValue(!Enabled);
+        EnabledSetting.SetValue(!ConfiguredEnabled);
         if (EnabledSetting.toggle != null)
-            EnabledSetting.toggle.Value = Enabled;
-        if (Enabled)
+            EnabledSetting.toggle.Value = ConfiguredEnabled;
+    }
+
+    internal void RefreshState()
+    {
+        var enabled = Enabled;
+        if (_running == enabled) return;
+        _running = enabled;
+        if (enabled)
+        {
             OnEnable();
+        }
         else
-            OnDisable();
+        {
+            try
+            {
+                OnDisable();
+            }
+            finally
+            {
+                Overrides.RestoreAll();
+            }
+        }
     }
 
     protected virtual void OnEnable()
@@ -101,7 +119,7 @@ public abstract class ModuleMinigame<T> : Minigame
 
     public override void OnGUI()
     {
-        if (GameManager.Minigame != null && GameManager.Minigame is T)
+        if (!ModuleManager.IsSuspended && GameManager.Minigame != null && GameManager.Minigame is T)
             Window.IsDrawing = ModuleGUI.Instance.Enabled;
         else
             Window.IsDrawing = false;

@@ -10,6 +10,8 @@ namespace SchummelPartie.module.modules;
 
 public class ModuleDaringDogfight : ModuleMinigame<PlanesController>
 {
+    private static readonly FieldInfo FireCooldownField = typeof(PlanesPlayer)
+        .GetField("m_fireCooldown", BindingFlags.NonPublic | BindingFlags.Instance);
     public SettingSwitch BurstShot;
     public SettingSwitch GodMode;
     public SettingSwitch KillAll;
@@ -24,7 +26,7 @@ public class ModuleDaringDogfight : ModuleMinigame<PlanesController>
     public override void OnUpdate()
     {
         base.OnUpdate();
-        if (Enabled && ((bool)GodMode.GetValue() || (bool)BurstShot.GetValue() || (bool)KillAll.GetValue()))
+        if (Enabled)
             if (GameManager.Minigame is PlanesController planesController)
                 foreach (var player in planesController.players)
                     if (player is PlanesPlayer planesPlayer)
@@ -39,9 +41,9 @@ public class ModuleDaringDogfight : ModuleMinigame<PlanesController>
                                             enemy.GetPlayerPosition());
 
                             if ((bool)BurstShot.GetValue())
-                                typeof(PlanesPlayer)
-                                    .GetField("m_fireCooldown", BindingFlags.NonPublic | BindingFlags.Instance)
-                                    .SetValue(planesPlayer, 0f);
+                                Overrides.SetField(planesPlayer, FireCooldownField, 0f);
+                            else
+                                Overrides.Restore(planesPlayer, "m_fireCooldown");
                         }
     }
 }

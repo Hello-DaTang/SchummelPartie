@@ -5,6 +5,8 @@ namespace SchummelPartie.module.modules;
 
 public class ModuleTanks : ModuleMinigame<TanksController>
 {
+    private static readonly FieldInfo FireRateField = typeof(TanksPlayer)
+        .GetField("m_fireRate", BindingFlags.NonPublic | BindingFlags.Instance);
     public SettingSwitch RapidFire;
 
     public ModuleTanks() : base("Tanks", "Rapid Fire.")
@@ -22,13 +24,9 @@ public class ModuleTanks : ModuleMinigame<TanksController>
                         if (player.IsMe())
                         {
                             if ((bool)RapidFire.GetValue())
-                                typeof(TanksPlayer)
-                                    .GetField("m_fireRate", BindingFlags.NonPublic | BindingFlags.Instance)
-                                    ?.SetValue(tanksPlayer, 0.001f);
+                                Overrides.SetField(tanksPlayer, FireRateField, 0.001f);
                             else
-                                typeof(TanksPlayer)
-                                    .GetField("m_fireRate", BindingFlags.NonPublic | BindingFlags.Instance)
-                                    ?.SetValue(tanksPlayer, 2f);
+                                Overrides.Restore(tanksPlayer, "m_fireRate");
                         }
     }
 }

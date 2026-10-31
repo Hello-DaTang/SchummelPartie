@@ -41,7 +41,7 @@ public static class SettingManager
                 s.SetValue(Convert.ChangeType(setting.Value, s.GetValue().GetType()));
                 MelonLogger.Msg($"[Setting] {setting.Container}.{setting.Name} = {s.GetValue()}");
             }
-            else
+            else if (setting.Container != "Force Present" || setting.Name != "Action ID")
             {
                 MelonLogger.Warning($"[Setting] {setting.Container}.{setting.Name} not found");
             }

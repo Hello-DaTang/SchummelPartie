@@ -21,9 +21,10 @@ public class Loader : MelonMod
             ModuleManager.Init();
             MelonLogger.Msg("[Loader] Initialized ModuleManager.");
             MelonLogger.Msg("[Loader] Patching All");
-            global::Harmony.HarmonyInstance.Create("Lyzev.Schummel_Partie").PatchAll();
+            new HarmonyLib.Harmony("Lyzev.Schummel_Partie").PatchAll(typeof(Loader).Assembly);
             MelonLogger.Msg("[Loader] Patched All.");
             SettingManager.LoadSettings();
+            ModuleManager.RefreshStates();
             AppDomain.CurrentDomain.ProcessExit += (_, _) => SettingManager.SaveSettings();
             ModuleGUI.Instance.InitSettings();
             ModuleManager.GetModules<Minigame>().ForEach(m =>
@@ -42,5 +43,15 @@ public class Loader : MelonMod
     public override void OnGUI()
     {
         ModuleManager.OnGUI();
+    }
+
+    public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+    {
+        ModuleManager.OnSceneChanged();
+    }
+
+    public override void OnApplicationQuit()
+    {
+        ModuleManager.SetSuspended(true);
     }
 }

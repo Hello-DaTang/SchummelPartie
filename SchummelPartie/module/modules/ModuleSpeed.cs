@@ -32,11 +32,16 @@ public class ModuleSpeed : Module
                 var characterMover = me.GetComponent<CharacterMover>();
                 if (characterMover != null)
                 {
-                    characterMover.maxSpeed = (float)MaxSpeed.GetValue();
-                    characterMover.acceleration = (float)Acceleration.GetValue();
-                    characterMover.deceleration = (float)Deceleration.GetValue();
-                    characterMover.airAcceleration = (float)AirAcceleration.GetValue();
-                    characterMover.airDeceleration = (float)AirDeceleration.GetValue();
+                    Overrides.Set(characterMover, "maxSpeed", () => characterMover.maxSpeed,
+                        value => characterMover.maxSpeed = value, (float)MaxSpeed.GetValue());
+                    Overrides.Set(characterMover, "acceleration", () => characterMover.acceleration,
+                        value => characterMover.acceleration = value, (float)Acceleration.GetValue());
+                    Overrides.Set(characterMover, "deceleration", () => characterMover.deceleration,
+                        value => characterMover.deceleration = value, (float)Deceleration.GetValue());
+                    Overrides.Set(characterMover, "airAcceleration", () => characterMover.airAcceleration,
+                        value => characterMover.airAcceleration = value, (float)AirAcceleration.GetValue());
+                    Overrides.Set(characterMover, "airDeceleration", () => characterMover.airDeceleration,
+                        value => characterMover.airDeceleration = value, (float)AirDeceleration.GetValue());
                 }
             }
     }

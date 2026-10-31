@@ -10,6 +10,8 @@ namespace SchummelPartie.module.modules;
 
 public class ModuleBarnBrawl : ModuleMinigame<BarnBrawlController>
 {
+    private static readonly FieldInfo CameraShakeField = typeof(BarnBrawlPlayer)
+        .GetField("cameraShake", BindingFlags.NonPublic | BindingFlags.Instance);
     public SettingSwitch BurstShotgun;
     public SettingSwitch GodMode;
     public SettingSwitch InfiniteShotgun;
@@ -26,7 +28,7 @@ public class ModuleBarnBrawl : ModuleMinigame<BarnBrawlController>
     public override void OnUpdate()
     {
         base.OnUpdate();
-        if (Enabled && ((bool)GodMode.GetValue() || (bool)InfiniteShotgun.GetValue() || (bool)BurstShotgun.GetValue()))
+        if (Enabled)
             if (GameManager.Minigame is BarnBrawlController barnBrawlController)
                 foreach (var player in barnBrawlController.players)
                     if (player is BarnBrawlPlayer barnBrawlPlayer)
@@ -37,33 +39,30 @@ public class ModuleBarnBrawl : ModuleMinigame<BarnBrawlController>
 
                             if (!barnBrawlPlayer.HoldingShotgun)
                                 if ((bool)InfiniteShotgun.GetValue() || Input.GetKeyDown(KeyCode.F))
-                                    barnBrawlPlayer.HoldingShotgun = true;
+                                    Overrides.Set(barnBrawlPlayer, "HoldingShotgun", () => barnBrawlPlayer.HoldingShotgun,
+                                        value => barnBrawlPlayer.HoldingShotgun = value, true);
 
                             if ((bool)BurstShotgun.GetValue())
                             {
-                                barnBrawlPlayer.minProjectiles = 50;
-                                barnBrawlPlayer.maxProjectiles = 60;
+                                Overrides.Set(barnBrawlPlayer, "minProjectiles", () => barnBrawlPlayer.minProjectiles,
+                                    value => barnBrawlPlayer.minProjectiles = value, 50);
+                                Overrides.Set(barnBrawlPlayer, "maxProjectiles", () => barnBrawlPlayer.maxProjectiles,
+                                    value => barnBrawlPlayer.maxProjectiles = value, 60);
                             }
                             else
                             {
-                                barnBrawlPlayer.minProjectiles = 7;
-                                barnBrawlPlayer.maxProjectiles = 10;
+                                Overrides.Restore(barnBrawlPlayer, "minProjectiles");
+                                Overrides.Restore(barnBrawlPlayer, "maxProjectiles");
                             }
 
-                            if ((bool)NoCameraShake.GetValue())
+                            var cameraShake = CameraShakeField?.GetValue(barnBrawlPlayer) as CameraShake;
+                            if (cameraShake != null)
                             {
-                                var cameraShakeField = barnBrawlPlayer.GetType().GetField("cameraShake",
-                                    BindingFlags.NonPublic | BindingFlags.Instance);
-                                if (cameraShakeField != null)
-                                {
-                                    var cameraShake = (CameraShake)cameraShakeField.GetValue(barnBrawlPlayer);
-                                    if (cameraShake != null) cameraShake.enabled = false;
-                                }
+                                if ((bool)NoCameraShake.GetValue())
+                                    Overrides.Set(cameraShake, "enabled", () => cameraShake.enabled,
+                                        value => cameraShake.enabled = value, false);
                                 else
-                                {
-                                    MelonLogger.Error(
-                                        $"[{Name}] Could not find field cameraShake in BarnBrawlPlayer.");
-                                }
+                                    Overrides.Restore(cameraShake, "enabled");
                             }
                         }
     }

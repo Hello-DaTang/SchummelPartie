@@ -9,39 +9,31 @@ namespace SchummelPartie.module.modules;
 
 public class ModuleForcePresent : Module
 {
-    public SettingDropDown ActionID;
+    public const byte GoodActionId = 1;
+    private static readonly FieldInfo PlayerField = AccessTools.Field(typeof(Item), "player");
 
-    public ModuleForcePresent() : base("Force Present", "Forces the present action.")
+    public ModuleForcePresent() : base("Force Present", "Your existing presents always give the good teleport result. No items are granted.")
     {
         Instance = this;
-        ActionID = new SettingDropDown(Name, "Action ID", new Dictionary<int, string>
-        {
-            { 0, "Choose Minigame" },
-            { 1, "Teleport To Goal" },
-            { 2, "Swallow" }
-        }, 1);
     }
 
     public static ModuleForcePresent Instance { get; private set; }
+
+    internal static bool ShouldForce(PresentItem present)
+    {
+        if (Instance == null || !Instance.Enabled || present == null || !present.IsOwner || PlayerField == null) return false;
+        var player = PlayerField.GetValue(present) as GamePlayer;
+        return player != null && !player.IsAI && player.BoardObject != null && player.BoardObject.IsOwner;
+    }
 }
 
 [HarmonyPatch(typeof(PresentItem), "OpenPresent")]
 public static class PresentItemPatch
 {
     [HarmonyPrefix]
-    internal static bool Prefix(PresentItem __instance, ref byte actionID)
+    internal static void Prefix(PresentItem __instance, ref byte actionID)
     {
-        var player = (GamePlayer)typeof(PresentItem).GetField("player", BindingFlags.NonPublic | BindingFlags.Instance)
-            .GetValue(__instance);
-        if (player.BoardObject.IsOwner && !player.IsAI)
-            if (ModuleForcePresent.Instance.Enabled)
-            {
-                MelonLogger.Msg(
-                    $"[{ModuleForcePresent.Instance.Name}] [Client] Force Present ID: {ModuleForcePresent.Instance.ActionID.GetValue()}");
-                actionID = (byte)(int)ModuleForcePresent.Instance.ActionID.GetValue();
-            }
-
-        return true;
+        if (ModuleForcePresent.ShouldForce(__instance)) actionID = ModuleForcePresent.GoodActionId;
     }
 }
 
@@ -49,17 +41,12 @@ public static class PresentItemPatch
 public static class NetBehaviourPatch
 {
     [HarmonyPrefix]
-    internal static bool Prefix(NetBehaviour __instance, string method, NetRPCDelivery delivery,
+    internal static void Prefix(NetBehaviour __instance, string method,
         params object[] parameters)
     {
-        if (__instance.IsOwner)
-            if (ModuleForcePresent.Instance.Enabled && method == "RPCOpenPresent")
-            {
-                MelonLogger.Msg(
-                    $"[{ModuleForcePresent.Instance.Name}] [Server] Force Present ID: {ModuleForcePresent.Instance.ActionID.GetValue()}");
-                parameters[0] = (byte)(int)ModuleForcePresent.Instance.ActionID.GetValue();
-            }
-
-        return true;
+        if (method == "RPCOpenPresent" && __instance is PresentItem present &&
+            parameters != null && parameters.Length == 3 && parameters[0] is byte &&
+            ModuleForcePresent.ShouldForce(present))
+            parameters[0] = ModuleForcePresent.GoodActionId;
     }
 }

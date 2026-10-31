@@ -17,22 +17,17 @@ public class ModuleMysteryMaze : ModuleMinigame<MysteryMazeController>
 [HarmonyPatch(typeof(MysteryMazeController), "Update")]
 public static class MysteryMazeControllerPatch
 {
-    [HarmonyPrefix]
-    internal static bool Prefix(MysteryMazeController __instance)
+    private static readonly FieldInfo RadiusField = AccessTools.Field(typeof(MysteryMazeController), "m_clipRadius");
+
+    [HarmonyPostfix]
+    internal static void Postfix(MysteryMazeController __instance)
     {
-        if (ModuleMysteryMaze.Instance.Enabled)
+        if (ModuleMysteryMaze.Instance.Enabled && RadiusField != null)
         {
-            var mysteryMazeControllerType = __instance.GetType();
-            var m_clipRadiusTargetFieldInfo = mysteryMazeControllerType.GetField("m_clipRadiusTarget",
-                BindingFlags.NonPublic | BindingFlags.Instance);
-
-            if (m_clipRadiusTargetFieldInfo != null)
-                m_clipRadiusTargetFieldInfo.SetValue(__instance, 50f);
-            else
-                MelonLogger.Error(
-                    $"[{ModuleMysteryMaze.Instance.Name}] Could not find field m_clipRadiusTarget in MysteryMazeController.");
+            // Override the rendering only; leave the game's visibility events and target radius intact.
+            ModuleMysteryMaze.Instance.Overrides.Remember(__instance, "_ClipRadiusOverride", () =>
+                UnityEngine.Shader.SetGlobalFloat("_ClipRadiusOverride", (float)RadiusField.GetValue(__instance)));
+            UnityEngine.Shader.SetGlobalFloat("_ClipRadiusOverride", 50f);
         }
-
-        return true;
     }
 }

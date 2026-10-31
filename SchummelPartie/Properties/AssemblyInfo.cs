@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using MelonLoader;
 using SchummelPartie;
 
-[assembly: MelonInfo(typeof(Loader), "Schummel Partie", "1.0.4", "Lyzev")]
+[assembly: MelonInfo(typeof(Loader), "Schummel Partie", "1.0.5", "Lyzev")]
 [assembly: MelonGame("Rebuilt Games", "Pummel Party")]
 
 // General Information about an assembly is controlled through the following 
@@ -37,4 +37,4 @@ using SchummelPartie;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.5.0")]

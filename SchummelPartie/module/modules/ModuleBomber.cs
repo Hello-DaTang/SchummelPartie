@@ -15,9 +15,14 @@ public class ModuleBomber : ModuleMinigame<BomberController>
                     if (player is BomberPlayer bomberPlayer)
                         if (player.IsMe())
                         {
-                            bomberPlayer.bombRange = 1000;
+                            Overrides.Set(bomberPlayer, "bombRange", () => bomberPlayer.bombRange,
+                                value => bomberPlayer.bombRange = value, 1000);
+                            Overrides.Set(bomberPlayer, "MaxBombs", () => bomberPlayer.MaxBombs,
+                                value => bomberPlayer.MaxBombs = value, 1000);
+                            var previousBombs = bomberPlayer.BombsRemaining;
+                            Overrides.Remember(bomberPlayer, "BombsRemaining", () =>
+                                bomberPlayer.BombsRemaining = System.Math.Min(previousBombs, bomberPlayer.BombsRemaining));
                             bomberPlayer.BombsRemaining = 1000;
-                            bomberPlayer.MaxBombs = 1000;
                         }
     }
 }

@@ -6,6 +6,10 @@ namespace SchummelPartie.module.modules;
 public class ModuleGUI : Module
 {
     private readonly UWindow _window;
+    private readonly UWindowControls.WToggle _pauseToggle;
+    private readonly UWindowControls.WToggle _cameraToggle;
+
+    protected override bool AvailableWhileSuspended => true;
 
     private readonly string[] _achievements = new[]
     {
@@ -46,14 +50,23 @@ public class ModuleGUI : Module
     {
         Instance = this;
         _window = UWindow.Begin("Schummel Partie by Lyzev", 0, 0, 350, startHeight: 400, dynamicHeight: true);
+        _pauseToggle = _window.Toggle("Pause all cheats (F8)", ModuleManager.SetSuspended, false);
+        _cameraToggle = _window.Toggle("Local free camera (F11)", active =>
+        {
+            if (active) LocalFreeCamera.Start();
+            else LocalFreeCamera.Stop();
+        }, false);
+        _window.Button("Pause / Resume all (F8)", ModuleManager.ToggleSuspended);
+        _window.Separator();
         _window.SameLine();
         _window.Button("Discord", () => Application.OpenURL("https://lyzev.github.io/discord/"));
         _window.Button("GitHub", () => Application.OpenURL("https://github.com/Lyzev/SchummelPartie"));
         _window.Button("Unlock all achievements", () =>
         {
+            if (ModuleManager.IsSuspended) return;
             foreach (var achievement in _achievements)
                 if (!PlatformAchievementManager.Instance.HasUnlockedAchievement(achievement))
-                    PlatformAchievementManager.Instance.TriggerAchievement(achievement);
+                    PlatformAchievementManager.Instance.TriggerAchievement(achievement, null);
         });
         _window.IsDrawing = false;
     }
@@ -78,5 +91,17 @@ public class ModuleGUI : Module
     public override void OnUpdate()
     {
         if (Input.GetKeyDown(KeyCode.Insert) || Input.GetKeyDown(KeyCode.RightShift)) Toggle();
+        _pauseToggle.Value = ModuleManager.IsSuspended;
+        _cameraToggle.Value = LocalFreeCamera.Active;
+    }
+
+    public override void OnGUI()
+    {
+        _pauseToggle.Value = ModuleManager.IsSuspended;
+        _cameraToggle.Value = LocalFreeCamera.Active;
+        if (ModuleManager.IsSuspended)
+            GUI.Box(new Rect(Screen.width / 2f - 160, 8, 320, 30), "CHEATS PAUSED - F8 to resume");
+        else if (LocalFreeCamera.Active)
+            GUI.Box(new Rect(Screen.width / 2f - 230, 8, 460, 30), "FREE CAMERA: WASD / Q,E / RMB / Shift | F11 exits");
     }
 }

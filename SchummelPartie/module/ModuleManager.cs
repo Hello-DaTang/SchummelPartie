@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System;
 using MelonLoader;
 using SchummelPartie.module.modules;
+using UnityEngine;
 using UrGUI.UWindow;
 
 namespace SchummelPartie.module;
@@ -10,6 +11,37 @@ namespace SchummelPartie.module;
 public static class ModuleManager
 {
     public static List<Module> Modules = new();
+    public static bool IsSuspended { get; private set; }
+
+    public static void ToggleSuspended() => SetSuspended(!IsSuspended);
+
+    public static void SetSuspended(bool suspended)
+    {
+        if (IsSuspended == suspended) return;
+        IsSuspended = suspended;
+        if (suspended) LocalFreeCamera.Stop();
+        RefreshStates();
+        MelonLogger.Msg(suspended ? "[Pause] All cheats paused. F8 resumes." : "[Pause] Previous cheat settings resumed.");
+    }
+
+    public static void RefreshStates()
+    {
+        foreach (var module in Modules)
+            try
+            {
+                module.RefreshState();
+            }
+            catch (Exception exception)
+            {
+                MelonLogger.Error($"[Module Manager] {module.Name}: {exception}");
+            }
+    }
+
+    public static void OnSceneChanged()
+    {
+        LocalFreeCamera.Stop();
+        foreach (var module in Modules) module.Overrides.RestoreAll();
+    }
 
     public static void Init()
     {
@@ -56,7 +88,11 @@ public static class ModuleManager
 
     public static void OnUpdate()
     {
-        foreach (var module in Modules) module.OnUpdate();
+        if (Input.GetKeyDown(KeyCode.F8)) ToggleSuspended();
+        LocalFreeCamera.OnUpdate();
+        foreach (var module in Modules)
+            if (module is ModuleGUI || module.Enabled)
+                module.OnUpdate();
     }
 
     public static void OnGUI()

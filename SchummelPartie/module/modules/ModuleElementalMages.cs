@@ -20,7 +20,7 @@ public class ModuleElementalMages : ModuleMinigame<ElementalMagesController>
     public override void OnUpdate()
     {
         base.OnUpdate();
-        if (Enabled && ((bool)InstantPickupCrystal.GetValue() || (bool)NoCameraShake.GetValue()))
+        if (Enabled)
             if (GameManager.Minigame is ElementalMagesController elementalMagesController)
                 foreach (var player in elementalMagesController.players)
                     if (player is ElementalMagesPlayer elementalMagesPlayer)
@@ -37,20 +37,17 @@ public class ModuleElementalMages : ModuleMinigame<ElementalMagesController>
                                     // ignored
                                 }
 
-                            if ((bool)NoCameraShake.GetValue())
+                            // This minigame has a shared camera; its player has no cameraShake field.
+                            var cameraShake = elementalMagesController.MinigameCamera != null
+                                ? elementalMagesController.MinigameCamera.GetComponentInParent<CameraShake>()
+                                : null;
+                            if (cameraShake != null)
                             {
-                                var cameraShakeField = elementalMagesPlayer.GetType().GetField("cameraShake",
-                                    BindingFlags.NonPublic | BindingFlags.Instance);
-                                if (cameraShakeField != null)
-                                {
-                                    var cameraShake = (CameraShake)cameraShakeField.GetValue(elementalMagesPlayer);
-                                    if (cameraShake != null) cameraShake.enabled = false;
-                                }
+                                if ((bool)NoCameraShake.GetValue())
+                                    Overrides.Set(cameraShake, "enabled", () => cameraShake.enabled,
+                                        value => cameraShake.enabled = value, false);
                                 else
-                                {
-                                    MelonLogger.Error(
-                                        $"[{Name}] Could not find field cameraShake in BarnBrawlPlayer.");
-                                }
+                                    Overrides.Restore(cameraShake, "enabled");
                             }
                         }
     }
