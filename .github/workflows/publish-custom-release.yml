@@ -1,0 +1,65 @@
+name: Publish SchummelPartie custom release
+
+on:
+  push:
+    branches:
+      - feature/global-pause-free-camera
+    paths:
+      - .github/workflows/publish-custom-release.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out finished mod revision
+        uses: actions/checkout@v4
+        with:
+          ref: 8d14e0a5d9b6a4626849b6a2bfc851eeca573a84
+          persist-credentials: false
+
+      - name: Verify release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s artifacts/SchummelPartie.dll
+          test -s README.zh-CN.md
+          file artifacts/SchummelPartie.dll
+          sha256sum artifacts/SchummelPartie.dll
+
+      - name: Publish v1.0.5-custom.1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v1.0.5-custom.1"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; not overwriting."
+            exit 0
+          fi
+          cat > /tmp/schummelpartie-release-notes.md <<'EOF'
+          Custom build based on SchummelPartie 1.0.5.
+
+          Changes:
+          - F8 global pause/resume for helper modules, preserving prior settings and restoring supported runtime overrides.
+          - F11 local free camera with WASD, Q/E, right mouse and Shift; independent of the game's stock debug free camera.
+          - Force Present applies good results only to presents the local human player already owns; it does not grant presents or modify other players' results.
+          - Chinese setup and usage notes in README.zh-CN.md.
+
+          Install:
+          1. Keep your working MelonLoader and Lyzev/UrGUI installations.
+          2. Close Pummel Party and replace Mods/SchummelPartie.dll with the DLL attached here.
+          3. See README.zh-CN.md for keys, compatibility and limitations.
+
+          Source revision: 8d14e0a5d9b6a4626849b6a2bfc851eeca573a84
+          Note: The included DLL was built and checked into the branch by its maintainer; this workflow verifies that the artifact exists and publishes it without rebuilding. Gameplay and multiplayer compatibility have not been independently tested here.
+          EOF
+          gh release create "$tag" \
+            artifacts/SchummelPartie.dll README.zh-CN.md \
+            --target 8d14e0a5d9b6a4626849b6a2bfc851eeca573a84 \
+            --title "SchummelPartie v1.0.5-custom.1" \
+            --notes-file /tmp/schummelpartie-release-notes.md
